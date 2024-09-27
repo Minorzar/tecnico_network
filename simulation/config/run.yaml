@@ -1,0 +1,2 @@
+# network can be: "BA", "lattice", "minimal" or "random"
+network: 'lattice'

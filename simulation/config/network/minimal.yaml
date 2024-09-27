@@ -1,0 +1,5 @@
+type: "minimal"
+parameters:
+    num_nodes: 500
+    # Structure can be 'path', 'tree' or 'small_conn'
+    structure: "small_conn"
