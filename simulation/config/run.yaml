@@ -1,2 +1,6 @@
 # network can be: "BA", "lattice", "minimal" or "random"
-network: 'lattice'
+network: 'BA'
+# model can be: "SIS",
+model: 'SIS'
+# plot can be any number. 0 = false, 1 = true
+plot: 1
