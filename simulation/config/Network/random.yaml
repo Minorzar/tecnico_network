@@ -1,4 +1,4 @@
 type: "random"
 parameters:
-    num_nodes: 100
+    num_nodes: 500
     connectivity: 0.1

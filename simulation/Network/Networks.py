@@ -3,6 +3,7 @@ import os
 import networkx as nx
 import matplotlib.pyplot as plt
 import utils.utils as ut
+import numpy as np
 
 
 def VAL_ERROR(network_type):
@@ -16,34 +17,55 @@ def STRUCT_ERROR(struct):
 
 
 class Network:
-    def __init__(self, config):
+    def __init__(self, config, network):
         self.type = config['type']
         param = config['parameters']
+
+        saved = not(network is None)
+
         match self.type:
             case 'BA':
                 m = param['m']
                 self.num_nodes = param['num_nodes']
-                self.G = nx.barabasi_albert_graph(self.num_nodes, m)
+                if saved:
+                    self.G = network
+                else:
+                    self.G = nx.barabasi_albert_graph(self.num_nodes, m)
             case 'lattice':
                 dim = param['dimension']
                 self.num_nodes = dim ** 2
-                self.G = nx.grid_2d_graph(dim, dim)
+                if saved:
+                    self.G = network
+                else:
+                    self.G = nx.grid_2d_graph(dim, dim)
             case 'minimal':
                 self.num_nodes = param['num_nodes']
                 structure = param['structure']
                 match structure:
                     case 'path':
-                        self.G = nx.path_graph(self.num_nodes)
+                        if saved:
+                            self.G = network
+                        else:
+                            self.G = nx.path_graph(self.num_nodes)
                     case 'tree':
-                        self.G = nx.random_tree(self.num_nodes)
+                        if saved:
+                            self.G = network
+                        else:
+                            self.G = nx.random_tree(self.num_nodes)
                     case 'small_conn':
-                        self.G = nx.random_regular_graph(3, self.num_nodes)
+                        if saved:
+                            self.G = network
+                        else:
+                            self.G = nx.random_regular_graph(3, self.num_nodes)
                     case _:
                         raise STRUCT_ERROR(structure)
             case 'random':
                 self.num_nodes = param['num_nodes']
                 conn = param['connectivity']
-                self.G = nx.erdos_renyi_graph(self.num_nodes, conn)
+                if saved:
+                    self.G = network
+                else:
+                    self.G = nx.erdos_renyi_graph(self.num_nodes, conn)
             case _:
                 VAL_ERROR(self.type)
 
@@ -51,8 +73,11 @@ class Network:
         nx.draw(self.G)
         plt.show()
 
+    def get_average_degree(self):
+        return np.mean([d for n, d in self.G.degree()])
 
-def generate(cwd, config_path):
+
+def generate(cwd, config_path, keep):
     run_config = ut.load_yaml(config_path)
 
     if 'network' not in run_config:
@@ -64,10 +89,22 @@ def generate(cwd, config_path):
     if os.path.exists(network_config_path):
         network_config = ut.load_yaml(network_config_path)
 
-        print(f"Configuration for network '{network_type}':")
-        print(network_config)
-
-        return Network(network_config), network_config
-
     else:
         VAL_ERROR(network_type)
+
+    if os.path.exists(ut.SAVE_PATH):
+        net = ut.network_load()
+        print("Model load successfully")
+
+        network = Network(network_config, net)
+
+    else:
+        network = Network(network_config, None)
+        print("Model generated successfully")
+
+    print(f"Configuration for network '{network_type}':")
+    print(network_config)
+
+    return network, network_config, network.get_average_degree()
+
+

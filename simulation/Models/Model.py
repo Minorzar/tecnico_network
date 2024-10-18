@@ -54,8 +54,13 @@ def run(cwd, config_path):
     if 'model' not in run_config:
         raise ValueError("The 'model' key is missing in run.yaml.")
 
+    if 'keep' not in run_config:
+        raise ValueError("The 'keep' key is missing in run.yaml.")
+
     model = run_config['model']
-    G, network_param = nw.generate(cwd, config_path)
+    keep = run_config['keep']
+
+    G, network_param, avg_degree = nw.generate(cwd, config_path, keep)
 
     match model:
         case 'SIS':
@@ -84,8 +89,11 @@ def run(cwd, config_path):
 
     infected_count = []
 
+    if not os.path.exists(ut.SAVE_PATH):
+        ut.network_save(G.G)
+
     for _ in range(num_steps):
         sim.step()
         infected_count.append(list(sim.states.values()).count('I') / sim.num_nodes)
 
-    return infected_count, [network_param, model_config]
+    return infected_count, [network_param, model_config], avg_degree
