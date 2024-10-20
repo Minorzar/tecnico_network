@@ -51,6 +51,8 @@ To run the code, you can just open a terminal inside the simulation folder and u
 The output will be stored in [out](out) within folders named after the date of the execution and file named after the
 time of execution. Be aware that the execution can take some time (approx. 3min) mostly for the dynamic running.
 
+Be advice that for an unknown issue, the scale on the contour plot when running dynamically is inverted.
+
 ## Documents and IA usage
 
 Some of the code, mostly [utils.py](simulation/utils/utils.py), was generated using chatGPT. Any other sources that may
