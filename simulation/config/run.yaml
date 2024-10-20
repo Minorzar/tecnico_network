@@ -8,3 +8,10 @@ plot: 1
 iteration: 10
 # keep can either be 1 or 0 depending on the keeping of the save network or not
 keep: 1
+# mode can be either "dynamic" or "single" depending on the study you want
+mode: 'dynamic'
+parameters:
+  # range must be in the form <deb>-<end> for the range of the parameters. <end> should be bigger than <deb>
+  range: "0-1"
+  # step is the step of evolution in the range, it should devide <end> - <deb>
+  step: 0.1

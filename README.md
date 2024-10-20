@@ -48,6 +48,9 @@ To run the code, you can just open a terminal inside the simulation folder and u
     
     python main.py
 
+The output will be stored in [out](out) within folders named after the date of the execution and file named after the
+time of execution.
+
 ## Documents and IA usage
 
 Some of the code, mostly [utils.py](simulation/utils/utils.py), was generated using chatGPT. Any other sources that may

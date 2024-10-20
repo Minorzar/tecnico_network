@@ -1,10 +1,11 @@
 import Network.Networks as nw
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import os
 import networkx as nx
 import random
 import utils.utils as ut
 import numpy as np
+import datetime
 
 
 class SIS:
@@ -48,7 +49,91 @@ class SIS:
         plt.show()
 
 
-def run(cwd, config_path):
+def run_dyn(cwd, config_path, run_param):
+    run_config = ut.load_yaml(config_path)
+    date_str = datetime.datetime.now().strftime("%d-%m-%Y")
+    time_str = datetime.datetime.now().strftime("%H-%M-%S")
+
+    os.makedirs(f"out/{date_str}", exist_ok=True)
+
+    if 'model' not in run_config:
+        raise ValueError("The 'model' key is missing in run.yaml.")
+
+    if 'keep' not in run_config:
+        raise ValueError("The 'keep' key is missing in run.yaml.")
+
+    model = run_config['model']
+    keep = run_config['keep']
+
+    G, network_param, avg_degree = nw.generate(cwd, config_path, keep)
+
+    treshold = 1/(avg_degree + 1)
+
+    match model:
+        case 'SIS':
+            model_config_path = os.path.join(cwd, f'simulation\\config\\Model\\{model}.yaml')
+            model_config = ut.load_yaml(model_config_path)
+
+            if 'parameters' not in model_config:
+                raise ValueError(f"The 'parameters' key is missing in SIS.yaml.")
+
+            model_param = model_config['parameters']
+
+            model_params = ['num_steps', 'initial_infected']
+            params = ['range', 'step']
+
+            for p in model_params:
+                if p not in model_param:
+                    raise ValueError(f"The '{p}' key is missing in parameters in SIS.yaml.")
+
+            for p in params:
+                if p not in run_param:
+                    raise ValueError(f"The '{p}' key is missing in parameters in run.yaml.")
+
+            [start, end] = map(int, run_param['range'].split('-'))
+            step = run_param['step']
+            num_steps = model_param['num_steps']
+            initial_infected = model_param['initial_infected']
+
+            diff = np.zeros((int((end - start + step) / step), int((end - start + step) / step)))
+
+            beta_values = np.arange(start, end + step, step)
+            gamma_values = np.arange(start, end + step, step)
+
+            for i, beta in enumerate(beta_values):
+                for j, gamma in enumerate(gamma_values):
+                    sim = SIS(G, beta, gamma, initial_infected)
+                    infected_count = [initial_infected]
+
+                    if not os.path.exists(ut.SAVE_PATH):
+                        ut.network_save(G.G)
+
+                    for _ in range(num_steps):
+                        sim.step()
+                        infected_count.append(list(sim.states.values()).count('I'))
+
+                    final_infected = infected_count[-1]
+                    delta_I = final_infected - initial_infected
+                    diff[i, j] = delta_I/sim.num_nodes
+
+            plt.figure(figsize=(10, 6))
+            plt.xlim(-(start + step), end + step)
+            plt.ylim(-(start + step), end + step)
+            contour = plt.contourf(beta_values, gamma_values, diff, levels=[-1, -0.3, 0, 0.3, 1], alpha=0.7)
+            plt.colorbar(contour, label="Infected variation (ΔI)")
+
+            y = beta_values / treshold
+            plt.plot(beta_values, y, label=f'treshold')
+
+            plt.xlabel('Transmission rate (β)')
+            plt.ylabel('Healing rate (γ)')
+            plt.title(f'Infected evolution on SIS model with γ and β in a range of {start} to {end} for {G.type} '
+                      f'network')
+            plt.savefig(f'out/{date_str}/{time_str}.pdf', format='pdf')
+            plt.show()
+
+
+def run_single(cwd, config_path):
     run_config = ut.load_yaml(config_path)
 
     if 'model' not in run_config:
@@ -71,7 +156,7 @@ def run(cwd, config_path):
 
             for p in params:
                 if p not in model_param:
-                    raise ValueError(f"The '{p}' key is missing in SIS.yaml.")
+                    raise ValueError(f"The '{p}' key is missing in parameters in SIS.yaml.")
 
             print(f"Configuration for model '{model}':")
             print(model_config)
@@ -87,7 +172,7 @@ def run(cwd, config_path):
             raise ValueError(f"Config file for '{model}' doesn't exist. Please check that in run.yaml, model is set to"
                              f" a possible value: ('SIS', ).")
 
-    infected_count = []
+    infected_count = [initial_infected / sim.num_nodes]
 
     if not os.path.exists(ut.SAVE_PATH):
         ut.network_save(G.G)

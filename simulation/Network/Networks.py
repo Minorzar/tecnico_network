@@ -108,3 +108,7 @@ def generate(cwd, config_path, keep):
     return network, network_config, network.get_average_degree()
 
 
+def dynamic_gen():
+    pass
+
+

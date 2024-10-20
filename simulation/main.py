@@ -19,24 +19,42 @@ def main():
         raise ValueError("The 'iteration' key is missing in run.yaml.")
     if 'keep' not in run_conf:
         raise ValueError("The 'keep' key is missing in run.yaml.")
+    if 'mode' not in run_conf:
+        raise ValueError("The 'mode' key is missing in run.yaml.")
 
-    plot = max(0, min(1, run_conf['plot']))
-    iteration = run_conf['iteration']
-    keep = run_conf['keep']
+    mode = run_conf['mode']
 
-    sims = []
+    match mode:
+        case "dynamic":
+            if 'parameters' not in run_conf:
+                raise ValueError("The 'parameters' key is missing in run.yaml.")
 
-    for _ in range(iteration):
-        simu, [network_param, model_param], avg_degree = mod.run(cwd, conf)
-        sims.append(simu)
+            param = run_conf['parameters']
 
-    sim_mean = [sum(sim[i] for sim in sims) / len(sims) for i in range(len(sims[0]))]
-    sims.append(sim_mean)
+            mod.run_dyn(cwd, conf, param)
 
-    ut.save_plot(network_param, model_param, sims, iteration, avg_degree, plot)
+        case "single":
+            plot = max(0, min(1, run_conf['plot']))
+            iteration = run_conf['iteration']
+            keep = run_conf['keep']
 
-    if os.path.exists(ut.SAVE_PATH) and not keep:
-        os.remove(ut.SAVE_PATH)
+            sims = []
+
+            for _ in range(iteration):
+                simu, [network_param, model_param], avg_degree = mod.run_single(cwd, conf)
+                sims.append(simu)
+
+            sim_mean = [sum(sim[i] for sim in sims) / len(sims) for i in range(len(sims[0]))]
+            sims.append(sim_mean)
+
+            ut.save_plot(network_param, model_param, sims, iteration, avg_degree, plot)
+
+            if os.path.exists(ut.SAVE_PATH) and not keep:
+                os.remove(ut.SAVE_PATH)
+
+        case _:
+            raise ValueError(f"The mode {mode} is not a possible value for mode. Change it inside run.yaml,value can "
+                             f"be either 'dynamic' or 'single'.")
 
 
 if __name__ == "__main__":
