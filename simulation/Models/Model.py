@@ -62,8 +62,12 @@ def run_dyn(cwd, config_path, run_param):
     if 'keep' not in run_config:
         raise ValueError("The 'keep' key is missing in run.yaml.")
 
+    if 'iteration' not in run_config:
+        raise ValueError("The 'iteration' key is missing in run.yaml.")
+
     model = run_config['model']
     keep = run_config['keep']
+    num_iteration = run_config['iteration']
 
     G, network_param, avg_degree = nw.generate(cwd, config_path, keep)
 
@@ -102,19 +106,23 @@ def run_dyn(cwd, config_path, run_param):
 
             for i, beta in enumerate(beta_values):
                 for j, gamma in enumerate(gamma_values):
-                    sim = SIS(G, beta, gamma, initial_infected)
-                    infected_count = [initial_infected]
+                    delta_I = []
 
-                    if not os.path.exists(ut.SAVE_PATH):
-                        ut.network_save(G.G)
+                    for it in range(num_iteration):
+                        sim = SIS(G, beta, gamma, initial_infected)
+                        infected_count = [initial_infected]
 
-                    for _ in range(num_steps):
-                        sim.step()
-                        infected_count.append(list(sim.states.values()).count('I'))
+                        if not os.path.exists(ut.SAVE_PATH):
+                            ut.network_save(G.G)
 
-                    final_infected = infected_count[-1]
-                    delta_I = final_infected - initial_infected
-                    diff[i, j] = delta_I/sim.num_nodes
+                        for _ in range(num_steps):
+                            sim.step()
+                            infected_count.append(list(sim.states.values()).count('I'))
+
+                        final_infected = infected_count[-1]
+                        delta_I.append((final_infected - initial_infected)/sim.num_nodes)
+
+                    diff[i, j] = sum(delta_I)/len(delta_I)
 
             plt.figure(figsize=(10, 6))
             plt.xlim(-(start + step), end + step)
@@ -173,9 +181,6 @@ def run_single(cwd, config_path):
                              f" a possible value: ('SIS', ).")
 
     infected_count = [initial_infected / sim.num_nodes]
-
-    if not os.path.exists(ut.SAVE_PATH):
-        ut.network_save(G.G)
 
     for _ in range(num_steps):
         sim.step()

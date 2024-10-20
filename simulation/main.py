@@ -23,6 +23,9 @@ def main():
         raise ValueError("The 'mode' key is missing in run.yaml.")
 
     mode = run_conf['mode']
+    plot = max(0, min(1, run_conf['plot']))
+    iteration = run_conf['iteration']
+    keep = max(0, min(1,run_conf['keep']))
 
     match mode:
         case "dynamic":
@@ -34,10 +37,6 @@ def main():
             mod.run_dyn(cwd, conf, param)
 
         case "single":
-            plot = max(0, min(1, run_conf['plot']))
-            iteration = run_conf['iteration']
-            keep = run_conf['keep']
-
             sims = []
 
             for _ in range(iteration):
@@ -49,12 +48,12 @@ def main():
 
             ut.save_plot(network_param, model_param, sims, iteration, avg_degree, plot)
 
-            if os.path.exists(ut.SAVE_PATH) and not keep:
-                os.remove(ut.SAVE_PATH)
-
         case _:
             raise ValueError(f"The mode {mode} is not a possible value for mode. Change it inside run.yaml,value can "
                              f"be either 'dynamic' or 'single'.")
+
+    if os.path.exists(ut.SAVE_PATH) and not keep:
+        os.remove(ut.SAVE_PATH)
 
 
 if __name__ == "__main__":

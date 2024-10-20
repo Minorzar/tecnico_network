@@ -49,7 +49,7 @@ To run the code, you can just open a terminal inside the simulation folder and u
     python main.py
 
 The output will be stored in [out](out) within folders named after the date of the execution and file named after the
-time of execution.
+time of execution. Be aware that the execution can take some time (approx. 3min) mostly for the dynamic running.
 
 ## Documents and IA usage
 
