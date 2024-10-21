@@ -84,7 +84,7 @@ def run_dyn(cwd, config_path, run_param):
             model_param = model_config['parameters']
 
             model_params = ['num_steps', 'initial_infected']
-            params = ['range', 'step']
+            params = ['range', 'step', 'method']
 
             for p in model_params:
                 if p not in model_param:
@@ -98,47 +98,90 @@ def run_dyn(cwd, config_path, run_param):
             step = run_param['step']
             num_steps = model_param['num_steps']
             initial_infected = model_param['initial_infected']
+            method = run_param['method']
 
             diff = np.zeros((int((end - start + step) / step), int((end - start + step) / step)))
 
             beta_values = np.arange(start, end + step, step)
             gamma_values = np.arange(start, end + step, step)
 
-            for i, beta in enumerate(beta_values):
-                for j, gamma in enumerate(gamma_values):
-                    delta_I = []
+            match method:
+                case 'delta':
+                    for i, beta in enumerate(beta_values):
+                        for j, gamma in enumerate(gamma_values):
+                            delta_I = []
 
-                    for it in range(num_iteration):
-                        sim = SIS(G, beta, gamma, initial_infected)
-                        infected_count = [initial_infected]
+                            for it in range(num_iteration):
+                                sim = SIS(G, beta, gamma, initial_infected)
+                                infected_count = [initial_infected]
 
-                        if not os.path.exists(ut.SAVE_PATH):
-                            ut.network_save(G.G)
+                                if not os.path.exists(ut.SAVE_PATH):
+                                    ut.network_save(G.G)
 
-                        for _ in range(num_steps):
-                            sim.step()
-                            infected_count.append(list(sim.states.values()).count('I'))
+                                for _ in range(num_steps):
+                                    sim.step()
+                                    infected_count.append(list(sim.states.values()).count('I'))
 
-                        final_infected = infected_count[-1]
-                        delta_I.append((final_infected - initial_infected)/sim.num_nodes)
+                                final_infected = infected_count[-1]
+                                delta_I.append((final_infected - initial_infected)/sim.num_nodes)
 
-                    diff[i, j] = sum(delta_I)/len(delta_I)
+                            diff[i, j] = sum(delta_I)/len(delta_I)
 
-            plt.figure(figsize=(10, 6))
-            plt.xlim(-(start + step), end + step)
-            plt.ylim(-(start + step), end + step)
-            contour = plt.contourf(beta_values, gamma_values, diff, levels=[-1, -0.3, 0, 0.3, 1], alpha=0.7)
-            plt.colorbar(contour, label="Infected variation (ΔI)")
+                case 'final':
+                    for i, beta in enumerate(beta_values):
+                        for j, gamma in enumerate(gamma_values):
+                            final_infected = []
+                            for it in range(num_iteration):
+                                sim = SIS(G, beta, gamma, initial_infected)
+                                infected_count = [initial_infected]
 
-            y = beta_values / treshold
-            plt.plot(beta_values, y, label=f'treshold')
+                                if not os.path.exists(ut.SAVE_PATH):
+                                    ut.network_save(G.G)
 
-            plt.xlabel('Transmission rate (β)')
-            plt.ylabel('Healing rate (γ)')
-            plt.title(f'Infected evolution on SIS model with γ and β in a range of {start} to {end} for {G.type} '
-                      f'network')
-            plt.savefig(f'out/{date_str}/{time_str}.pdf', format='pdf')
-            plt.show()
+                                for _ in range(num_steps):
+                                    sim.step()
+                                    infected_count.append(list(sim.states.values()).count('I'))
+
+                                final_infected.append(infected_count[-1]/sim.num_nodes)
+
+                            diff[i, j] = sum(final_infected) / len(final_infected)
+                case _:
+                    pass
+
+            match method:
+                case 'delta':
+                    plt.figure(figsize=(10, 6))
+                    plt.xlim(-(start + step), end + step)
+                    plt.ylim(-(start + step), end + step)
+                    contour = plt.contourf(beta_values, gamma_values, diff, levels=[-1, -0.3, 0, 0.3, 1], alpha=0.7)
+                    plt.colorbar(contour, label="Infected variation (ΔI)")
+
+                    y = beta_values / treshold
+                    plt.plot(beta_values, y, label=f'treshold')
+
+                    plt.xlabel('Transmission rate (β)')
+                    plt.ylabel('Healing rate (γ)')
+                    plt.title(f'Infected evolution on SIS model with γ and β in a range of {start} to {end} for '
+                              f'{G.type} network')
+                    plt.savefig(f'out/{date_str}/{time_str}.pdf', format='pdf')
+                    plt.show()
+
+                case 'final':
+                    plt.figure(figsize=(10, 6))
+                    plt.xlim(-(start + step), end + step)
+                    plt.ylim(-(start + step), end + step)
+                    contour = plt.contourf(beta_values, gamma_values, diff, levels=[0, 0.3, 0.5, 0.99, 1], alpha=0.7)
+                    plt.colorbar(contour, label="Final proportion of susceptible")
+
+                    y = beta_values / treshold
+                    plt.plot(beta_values, y, label=f'treshold')
+
+                    plt.xlabel('Transmission rate (β)')
+                    plt.ylabel('Healing rate (γ)')
+                    plt.title(f'Final susceptible pourcentage on SIS model with γ and β in a range of {start} to {end} '
+                              f'for {G.type} network')
+                    plt.savefig(f'out/{date_str}/{time_str}.pdf', format='pdf')
+                    plt.show()
 
 
 def run_single(cwd, config_path):
